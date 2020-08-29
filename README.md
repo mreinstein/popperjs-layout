@@ -20,6 +20,5 @@ open `example.html` to see a very minimal popover implementation based on this c
 ## Important APIs
 
 * `visualViewport` native browser API, provides bounds on the part of the page visible in the viewport, and the current scale
-* `getCompositeRect` get the position and dimensions of an element relative to the visualViewport.
-* `getLayoutRect`  get position and dimensions of an element in page coordinates
-
+* `src/getCompositeRect` get the position and dimensions of an element relative to the visualViewport.
+* `src/getLayoutRect`  get position and dimensions of an element in page coordinates
