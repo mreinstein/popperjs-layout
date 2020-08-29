@@ -1,0 +1,198 @@
+<!doctype html>
+<html>
+<head>
+    <title>popperjs-layout example</title>
+    <meta name=theme-color content=#303F9F><meta name=viewport content="width=device-width,minimum-scale=1">
+
+    <link rel="stylesheet" href="./popover.css" />
+
+    <style>
+        body {
+          background-color: whitesmoke;
+          padding: 10px;
+          height: 3000px;
+          width: 3000px;
+        }
+
+        #reference {
+            position: absolute;
+            left: 1600px;
+            top: 200px;
+        }
+        #popper {
+            width: 400px;
+            height: 340px;
+        }
+
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/gh/dataarts/dat.gui@0.7.7/build/dat.gui.min.js"></script>
+</head>
+<body>
+
+    Scroll around the page to see the popover auto-layout.
+
+        <button id="reference">toggle button here</button>
+    
+        <div id="popper" class="generic-popover" role="tooltip" tabindex="-1">
+            <div x-arrow></div>
+            <div class="generic-popover-content">content should appear in here</div>
+        </div>
+
+
+<script type="module">
+
+import { isElement }         from './instanceOf.js';
+import listScrollParents     from './listScrollParents.js';
+import getCompositeRect      from './getCompositeRect.js';
+import getOffsetParent       from './getOffsetParent.js';
+import getLayoutRect         from './getLayoutRect.js';
+import layoutPopover         from './layout-popover.js';
+import getVisualViewport     from './ponyfill-visual-viewport.js';
+import supportsPassiveEvents from './supports-passive-events.js';
+
+
+function setupDatGui (state, viewport) {
+    const gui = new dat.GUI();
+    const ref = gui.addFolder('reference', true);
+    ref.add(state.rects.reference, 'x').listen();
+    ref.add(state.rects.reference, 'y').listen();
+    ref.add(state.rects.reference, 'width').listen();
+    ref.add(state.rects.reference, 'height').listen();
+
+    //ref.open();
+
+    const pop = gui.addFolder('popper', true);
+    pop.add(state.rects.popper, 'x').listen();
+    pop.add(state.rects.popper, 'y').listen();
+    pop.add(state.rects.popper, 'width').listen();
+    pop.add(state.rects.popper, 'height').listen();
+    //pop.open();
+
+    const vv = gui.addFolder('visualViewport', true);
+    vv.add(viewport, 'pageLeft').listen();
+    vv.add(viewport, 'pageTop').listen();
+    vv.add(viewport, 'width').listen();
+    vv.add(viewport, 'height').listen();
+    vv.add(viewport, 'scale').listen();
+    //vv.open();
+}
+
+
+function main () {
+    
+    const viewport = getVisualViewport();
+
+    // element that the popper is tied to
+    const reference = document.querySelector('#reference');
+
+    // element that is being displayed in popper
+    const popper = document.querySelector('#popper');
+
+    const arrow = popper.querySelector('[x-arrow]');
+
+    const state = {
+        strategy: 'fixed', // fixed | absolute
+
+        scrollParents: {
+            // get the list of scroll parents:
+            // if the reference is a dom element, get it's scrollparents
+            // elseif the reference is a virtual element, get scroll parent's of it's dom reference element
+            // else set the scrollparents to empty array
+            reference: isElement(reference) ? listScrollParents(reference) : reference.contextElement ? listScrollParents(reference.contextElement) : [ ],
+            popper: listScrollParents(popper)
+        },
+        
+        rects: {
+            reference: { x: 0, y: 0, width: 0, height: 0 },
+            popper: { x: 0, y: 0, width: 0, height: 0 },
+        }
+    };
+
+
+    function update () {
+        Object.assign(state.rects.reference, getCompositeRect(reference, getOffsetParent(popper), state.strategy === 'fixed'))
+        Object.assign(state.rects.popper, getLayoutRect(popper))
+
+        const layout = layoutPopover(viewport, state.rects.reference, state.rects.popper);
+
+        if (!layout)
+            return;
+
+        // TODO: only adjust x-out-of-boundaries attribute when it transitions between visible and hidden
+
+        if (layout.referenceOutOfBounds) {
+            popper.setAttribute('x-out-of-boundaries', '');
+            return;
+        }
+
+        popper.removeAttribute('x-out-of-boundaries');
+
+
+        if (layout.dir === 's') {
+            popper.setAttribute('x-placement', 'bottom');
+            arrow.className = '';
+            arrow.classList.add('generic-popover-arrow-up');
+            arrow.style.left = `${layout.arrow.x}px`;
+            arrow.style.top = '';
+        
+        } else if (layout.dir === 'e') {
+            popper.setAttribute('x-placement', 'right');
+            arrow.className = '';
+            arrow.classList.add('generic-popover-arrow-left');
+            arrow.style.left = '';
+            arrow.style.top = `${layout.arrow.y}px`;
+
+        } else if (layout.dir === 'w') {
+            popper.setAttribute('x-placement', 'left');
+            arrow.className = '';
+            arrow.classList.add('generic-popover-arrow-right');
+            arrow.style.left = '';
+            arrow.style.top = `${layout.arrow.y}px`;
+
+        } else if (layout.dir === 'n') {
+            popper.setAttribute('x-placement', 'top');
+            arrow.className = '';
+            arrow.classList.add('generic-popover-arrow-down');
+            arrow.style.left = `${layout.arrow.x}px`;
+            arrow.style.top = '';
+        } else {
+            // popover didn't fit in any quadrant, so it's centered aboce the reference element
+            popper.setAttribute('x-placement', '');
+            arrow.className = '';
+        }
+
+        state.rects.popper.x = layout.popper.x;
+        state.rects.popper.y = layout.popper.y;
+
+        popper.style.left = `${state.rects.popper.x}px`;
+        popper.style.top = `${state.rects.popper.y}px`;
+    }
+
+
+    const scrollParents = [ ...state.scrollParents.reference, ...state.scrollParents.popper ];
+
+
+    const passive = { passive: true };
+
+    scrollParents.forEach(function (scrollParent) {
+      scrollParent.addEventListener('scroll', update, supportsPassiveEvents() ? passive : false);
+    });
+
+
+    window.addEventListener('resize', update, supportsPassiveEvents() ? passive : false);
+
+
+    update();
+
+    setupDatGui(state, viewport);
+}
+
+
+window.addEventListener('load', main);
+
+
+</script>
+
+</body>
+</html>

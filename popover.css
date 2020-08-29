@@ -1,0 +1,90 @@
+/**
+ * arrow styles from
+ * https://css-tricks.com/snippets/css/css-triangle/
+ * http://www.cssarrowplease.com/
+ */
+
+
+.generic-popover {
+  position: absolute;
+  background: white;
+  will-change: top,left,opacity;
+  transition-timing-function: cubic-bezier(.165, .84, .44, 1);
+  outline: 0;
+
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,.07), 0 3px 13px 0 rgba(0,0,0,.16);
+  padding: 40px;
+  line-height: 1.4;
+  cursor: pointer;
+  pointer-events: initial;
+}
+
+/**
+ * For simplicity, the arrow will be just a square.
+ * You can style your arrow to look like a triangle
+ * and use the `[x-placement]` attribute to control
+ * its direction in relation to the reference element.
+ */
+.generic-popover [x-arrow] {
+  position: absolute;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(.165, .84, .44, 1);
+}
+
+/**
+ * We need to add margin to the side
+ * touching the reference element
+ * to address for the arrow size
+ */
+.generic-popover[x-placement="bottom"] { margin-top: 10px; }
+.generic-popover[x-placement="left"] { margin-right: 10px; }
+.generic-popover[x-placement="top"] { margin-bottom: 10px; }
+.generic-popover[x-placement="right"] { margin-left: 10px; }
+
+
+/**
+ * The arrow element lives *inside* the popper
+ * so we need to offset it by its size to position
+ * it outside the popper element.
+ */
+.generic-popover[x-placement="bottom"] [x-arrow] { top: -10px; }
+.generic-popover[x-placement="left"] [x-arrow] { right: -10px; }
+.generic-popover[x-placement="top"] [x-arrow] { bottom: -10px; }
+.generic-popover[x-placement="right"] [x-arrow] { left: -10px; }
+
+.generic-popover-arrow-right {
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 10px solid white;
+}
+
+.generic-popover-arrow-left {
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-right: 10px solid white;
+}
+
+.generic-popover-arrow-up {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid white;
+}
+
+.generic-popover-arrow-down {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid white;
+}
+
+/* popper.js will add x-out-of-boundaries property */
+.generic-popover[x-out-of-boundaries] {
+  display: none;
+}
